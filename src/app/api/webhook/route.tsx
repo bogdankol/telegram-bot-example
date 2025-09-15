@@ -18,6 +18,10 @@ async function sendMessage(chatId: number, text: string) {
   });
 }
 
+export async function GET(req: NextRequest) {
+  return NextResponse.json({ hiThere: 'hello there'})
+}
+
 // Handle Telegram updates
 export async function POST(req: NextRequest) {
   try {
