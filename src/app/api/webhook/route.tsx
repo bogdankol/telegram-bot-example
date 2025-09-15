@@ -19,12 +19,11 @@ async function sendMessage(chatId: number, text: string) {
 }
 
 export async function GET(req: NextRequest) {
-  return NextResponse.json({ hiThere: 'hello there'})
+  return NextResponse.json({ hiThere: "hello there" });
 }
 
 // Handle Telegram updates
 export async function POST(req: NextRequest) {
-  console.log("AAAAAAAAA", { body: req.body })
   try {
     const body = await req.json();
 
@@ -36,21 +35,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "No message received" });
     }
 
-    // Ask OpenAI
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: userText }],
-    });
+    let aiText: string;
 
-    const aiText =
-      response.choices[0].message?.content || "Sorry, I have no answer.";
+    try {
+      // Try to get response from OpenAI
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: userText }],
+      });
 
-    // Reply back
+      aiText = response.choices[0].message?.content || "Sorry, I have no answer.";
+    } catch (err) {
+      console.error("OpenAI error:", err);
+      // Fallback message when quota is exceeded or API is unavailable
+      aiText = "⚡ Sorry, my AI brain is offline right now!";
+    }
+
+    // Always reply back (AI or fallback)
     await sendMessage(chatId, aiText);
 
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Webhook error:", error);
-    return NextResponse.json({ ok: false, error });
+    return NextResponse.json({ ok: false, error: String(error) });
   }
 }
