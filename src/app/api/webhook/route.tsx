@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
 
 // Handle Telegram updates
 export async function POST(req: NextRequest) {
+  console.log("AAAAAAAAA", { body: req.body })
   try {
     const body = await req.json();
 
