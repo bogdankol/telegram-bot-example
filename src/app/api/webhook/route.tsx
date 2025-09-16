@@ -29,6 +29,8 @@ export async function POST(req: NextRequest) {
     const chatId = body.message?.chat?.id;
     const userText = body.message?.text;
 
+    console.log({ chatId, userText })
+
     if (!chatId || !userText) {
       return NextResponse.json({ ok: false, error: "No message received" });
     }
