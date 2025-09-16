@@ -22,61 +22,50 @@ export async function GET(req: NextRequest) {
 
 // Handle Telegram updates
 export async function POST(req: NextRequest) {
-	try {
-		const body = await req.json()
+  try {
+    const body = await req.json();
+    const chatId = body.message?.chat?.id;
+    const userText = body.message?.text;
 
-		// Extract chat info
-		const chatId = body.message?.chat?.id
-		const userText = body.message?.text
+    if (!chatId || !userText) {
+      return NextResponse.json({ ok: false, error: "No message received" });
+    }
 
-		if (!chatId || !userText) {
-			return NextResponse.json({ ok: false, error: 'No message received' })
-		}
+    let aiText: string;
 
-		let aiText: string
+    try {
+      const response = await fetch(OPENROUTER_API, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-pro",
+          messages: [{ role: "user", content: userText }],
+          max_tokens: 50, // stay within free quota
+        }),
+      });
 
-		try {
-			// Try to get response from OpenAI
-			const response = await fetch(OPENROUTER_API, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-				},
-				body: JSON.stringify({
-					model: 'google/gemini-2.5-pro',
-					messages: [{ role: 'user', content: userText }],
-					max_tokens: 50,
-				}),
-			})
+      const data = await response.json();
 
-			const data = await response.json()
+      // Handle quota exceeded
+      if (data.error?.code === 402) {
+        aiText = "⚡ Sorry, the AI can't respond because the free quota was exceeded.";
+      } else {
+        // Safe access to message content
+        const messageObj = data.choices?.[0]?.message;
+        aiText = messageObj?.content ?? "⚡ Sorry, I have no answer.";
+      }
+    } catch (err) {
+      console.error("OpenRouter error:", err);
+      aiText = "⚡ Sorry, my AI brain is offline right now!";
+    }
 
-			if (data.error?.code === 402) {
-				aiText =
-					"⚡ Sorry, the AI can't respond because the free quota was exceeded."
-			}
-
-			const messageObj = data.choices?.[0]?.message
-			if (messageObj && typeof messageObj === 'object') {
-				// Sometimes Gemini nests content under message.content
-				aiText = messageObj.content || '⚡ Sorry, I have no answer.'
-			} else {
-				console.warn('OpenRouter returned unexpected structure:', data)
-				aiText = '⚡ Sorry, I have no answer.'
-			}
-		} catch (err) {
-			console.error('OpenAI error:', err)
-			// Fallback message when quota is exceeded or API is unavailable
-			aiText = '⚡ Sorry, my AI brain is offline right now!'
-		}
-
-		// Always reply back (AI or fallback)
-		await sendMessage(chatId, aiText)
-
-		return NextResponse.json({ ok: true })
-	} catch (error) {
-		console.error('Webhook error:', error)
-		return NextResponse.json({ ok: false, error: String(error) })
-	}
+    await sendMessage(chatId, aiText);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Webhook error:", error);
+    return NextResponse.json({ ok: false, error: String(error) });
+  }
 }
