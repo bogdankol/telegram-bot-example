@@ -57,15 +57,13 @@ export async function POST(req: NextRequest) {
 					"⚡ Sorry, the AI can't respond because the free quota was exceeded."
 			}
 
-			if (
-				data.choices &&
-				data.choices.length > 0 &&
-				data.choices[0].message?.content
-			) {
-				aiText = data.choices[0].message.content
+			const messageObj = data.choices?.[0]?.message
+			if (messageObj && typeof messageObj === 'object') {
+				// Sometimes Gemini nests content under message.content
+				aiText = messageObj.content || '⚡ Sorry, I have no answer.'
 			} else {
 				console.warn('OpenRouter returned unexpected structure:', data)
-				aiText = '⚡ Sorry, I have no answer right now.'
+				aiText = '⚡ Sorry, I have no answer.'
 			}
 		} catch (err) {
 			console.error('OpenAI error:', err)
