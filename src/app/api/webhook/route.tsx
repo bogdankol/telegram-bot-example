@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
 const TELEGRAM_API = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`;
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const OPENROUTER_API = "https://openrouter.ai/api/v1/chat/completions";
 
 // Send a message to Telegram (native API call)
 async function sendMessage(chatId: number, text: string) {
@@ -39,12 +37,21 @@ export async function POST(req: NextRequest) {
 
     try {
       // Try to get response from OpenAI
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: userText }],
-      });
+      const response = await fetch(OPENROUTER_API, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-pro",
+          messages: [{ role: "user", content: userText }],
+        }),
+      })
 
-      aiText = response.choices[0].message?.content || "Sorry, I have no answer.";
+      const data = await response.json()
+
+      aiText = data.choices[0].message?.content || "Sorry, I have no answer.";
     } catch (err) {
       console.error("OpenAI error:", err);
       // Fallback message when quota is exceeded or API is unavailable
