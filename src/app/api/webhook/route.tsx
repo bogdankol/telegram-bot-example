@@ -46,11 +46,16 @@ export async function POST(req: NextRequest) {
 				body: JSON.stringify({
 					model: 'google/gemini-2.5-pro',
 					messages: [{ role: 'user', content: userText }],
-          max_tokens: 4000
+					max_tokens: 4000,
 				}),
 			})
 
 			const data = await response.json()
+
+			if (data.error?.code === 402) {
+				aiText =
+					"⚡ Sorry, the AI can't respond because the free quota was exceeded."
+			}
 
 			if (
 				data.choices &&
