@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           model: "google/gemini-2.5-pro",
           messages: [{ role: "user", content: userText }],
-          max_tokens: 100, // stay within free quota
+          max_tokens: 150, // stay within free quota
         }),
       });
 
